@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(36) NOT NULL PRIMARY KEY,
   username VARCHAR(30) NOT NULL,
-  password VARCHAR(110) NOT NULL,
+  password VARCHAR(255) NOT NULL,
   email VARCHAR(255),
   time_added BIGINT NOT NULL
 );
