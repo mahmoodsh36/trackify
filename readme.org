@@ -1,5 +1,45 @@
 * trackify - track and visualize your spotify activity
 trackify tracks your spotify activity and displays it in beautiful charts for you to admire
+* with nix
+** dev stack
+   brings up mariadb, redis and the web/tracker/cache processes under a
+   process-compose tui, with all state in ./.data
+   #+BEGIN_SRC bash
+   nix run github:mahmoodsheikh36/trackify
+   #+END_SRC
+   the app is then on http://localhost:8091. individual pieces:
+   #+BEGIN_SRC bash
+   nix run .#db          # mariadb only
+   nix run .#redis-server
+   nix run .#init-db     # create db/user and load the schema
+   nix run .#web         # gunicorn only
+   nix run .#tracker
+   nix run .#cache
+   nix run .#mysql-shell
+   nix run .#clean       # wipe ./.data
+   #+END_SRC
+   =nix develop= puts the same scripts on PATH as =trackify-dev-*=
+
+   spotify/discogs credentials are read from the environment, see config.py
+   for every =TRACKIFY_*= var
+** nixos module
+   #+BEGIN_SRC nix
+   {
+     inputs.trackify.url = "github:mahmoodsheikh36/trackify";
+
+     # in your nixos config
+     imports = [ inputs.trackify.nixosModules.default ];
+     services.trackify = {
+       enable = true;
+       domain = "trackify.example.com";
+       secretKey = "...";
+       spotify.clientId = "...";
+       spotify.clientSecret = "...";
+     };
+   }
+   #+END_SRC
+   it runs the three services, provisions a local mariadb + redis and adds a
+   caddy vhost. see nix/module.nix for the options
 * dependencies
   #+BEGIN_SRC bash
   pip3 install flask requests mysql-connector

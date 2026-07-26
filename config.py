@@ -1,18 +1,31 @@
+import os
+
+
+def _bool(name, default):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
 CONFIG = {
-    'database': 'trackify',
-    'database_user': 'mahmooz',
-    'database_password': 'mahmooz',
-    'database_host': '0.0.0.0',
-    'secret_key': 'my_super_secret_key',
-    'client_id': None,
-    'client_secret': None,
-    'scope': "user-library-read playlist-read-private user-read-playback-state user-read-currently-playing user-modify-playback-state",
-    'redirect_uri': "http://localhost:5000/spotify/callback",
-    'permanent_session': True,
-    'discogs_api_key': 'discogs_api_key',
-    'discogs_api_secret': 'discogs_api_secret',
-    # 'permanent_session_lifetime': 2678400, # the default (31 days)
+    'database': os.environ.get('TRACKIFY_DB_NAME', 'trackify'),
+    'database_user': os.environ.get('TRACKIFY_DB_USER', 'trackify'),
+    'database_password': os.environ.get('TRACKIFY_DB_PASSWORD', 'trackify'),
+    'database_host': os.environ.get('TRACKIFY_DB_HOST', '127.0.0.1'),
+    'secret_key': os.environ.get('TRACKIFY_SECRET_KEY', ''),
+    'client_id': os.environ.get('TRACKIFY_SPOTIFY_CLIENT_ID', ''),
+    'client_secret': os.environ.get('TRACKIFY_SPOTIFY_CLIENT_SECRET', ''),
+    'scope': os.environ.get(
+        'TRACKIFY_SPOTIFY_SCOPE',
+        'user-library-read playlist-read-private user-read-playback-state user-read-currently-playing user-modify-playback-state',
+    ),
+    'redirect_uri': os.environ.get(
+        'TRACKIFY_REDIRECT_URI', 'http://localhost:8091/spotify/callback'
+    ),
+    'permanent_session': _bool('TRACKIFY_PERMANENT_SESSION', True),
+    'discogs_api_key': os.environ.get('TRACKIFY_DISCOGS_API_KEY', ''),
+    'discogs_api_secret': os.environ.get('TRACKIFY_DISCOGS_API_SECRET', ''),
 }
-CONFIG_UPPERCASE = {}
-for key, value in CONFIG.items():
-    CONFIG_UPPERCASE[key.upper()] = value
+
+CONFIG_UPPERCASE = {key.upper(): value for key, value in CONFIG.items()}

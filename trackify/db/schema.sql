@@ -14,7 +14,7 @@ CREATE TABLE IF Not EXISTS settings (
   default_value VARCHAR(10) NOT NULL
 );
 
-INSERT INTO settings (id, description, setting_name, value_type, default_value) VALUES
+INSERT IGNORE INTO settings (id, description, setting_name, value_type, default_value) VALUES
 (1, 'show me on top users list', 'show_on_top_users', 'bool', 'True'),
 (2, 'show my favorite track on the top users list', 'show_favorite_track_on_top_users',
  'bool', 'False');
@@ -180,5 +180,5 @@ CREATE TABLE IF NOT EXISTS api_access_tokens (
   FOREIGN KEY (refresh_token_id) REFERENCES api_refresh_tokens (id)
 );
 
-CREATE INDEX time_started_index ON plays(time_started);
-CREATE INDEX time_ended_index ON plays(time_ended);
+CREATE INDEX IF NOT EXISTS time_started_index ON plays(time_started);
+CREATE INDEX IF NOT EXISTS time_ended_index ON plays(time_ended);
