@@ -38,7 +38,7 @@ def get_largest_elements(list_to_sort, limit, compare):
 
 def hrs_from_ms(ms):
     return ms // 3600000
-    
+
 def mins_from_ms(ms):
     return (ms // 60000) % 60
 
