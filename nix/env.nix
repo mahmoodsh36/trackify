@@ -12,6 +12,7 @@ lib.mapAttrs (_: toString) (lib.filterAttrs (_: v: v != null) {
   TRACKIFY_DB_USER = settings.database.user;
   TRACKIFY_DB_PASSWORD = settings.database.password;
   TRACKIFY_DB_HOST = settings.database.host;
+  TRACKIFY_DB_PORT = settings.database.port or null;
   TRACKIFY_BIND = "127.0.0.1:${toString settings.port}";
   TRACKIFY_WORKERS = settings.workers;
   TRACKIFY_REDIRECT_URI = settings.redirectUri;

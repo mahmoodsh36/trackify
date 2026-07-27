@@ -35,6 +35,14 @@
 
       packages = forAllSystems (it: it.packages);
 
+      # `nix flake check` runs the same script as `nix run .#tests`
+      checks = forAllSystems ({ pkgs, devPackages, ... }: {
+        tests = pkgs.runCommand "trackify-tests" { } ''
+          ${lib.getExe devPackages.tests}
+          touch $out
+        '';
+      });
+
       apps = forAllSystems (it:
         lib.mapAttrs (_: pkg: {
           type = "app";
@@ -44,7 +52,7 @@
       devShells = forAllSystems ({ pkgs, trackify, devPackages, ... }: {
         default = pkgs.mkShell {
           packages = [
-            trackify.passthru.pythonEnv
+            trackify.passthru.testEnv
             pkgs.mariadb
             pkgs.redis
             pkgs.process-compose

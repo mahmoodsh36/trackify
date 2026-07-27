@@ -152,6 +152,12 @@ let
       rm -rf ${dataDir}
       echo "removed .data"
     '';
+
+    tests = ''
+      export PYTHONPATH="${trackify.passthru.src}"
+      export PYTHONDONTWRITEBYTECODE=1
+      exec ${trackify.passthru.testEnv}/bin/pytest -p no:cacheprovider ${trackify.passthru.src}/tests "$@"
+    '';
   } // lib.mapAttrs (_: bin: ''exec ${trackify}/bin/${bin} "$@"'') apps;
 in
 lib.mapAttrs mkScript bodies // {

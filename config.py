@@ -13,6 +13,7 @@ CONFIG = {
     'database_user': os.environ.get('TRACKIFY_DB_USER', 'trackify'),
     'database_password': os.environ.get('TRACKIFY_DB_PASSWORD', 'trackify'),
     'database_host': os.environ.get('TRACKIFY_DB_HOST', '127.0.0.1'),
+    'database_port': int(os.environ.get('TRACKIFY_DB_PORT', '3306')),
     'secret_key': os.environ.get('TRACKIFY_SECRET_KEY', ''),
     'client_id': os.environ.get('TRACKIFY_SPOTIFY_CLIENT_ID', ''),
     'client_secret': os.environ.get('TRACKIFY_SPOTIFY_CLIENT_SECRET', ''),

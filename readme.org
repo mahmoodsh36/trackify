@@ -17,6 +17,7 @@ trackify tracks your spotify activity and displays it in beautiful charts for yo
    nix run .#cache
    nix run .#mysql-shell
    nix run .#clean       # wipe ./.data
+   nix run .#tests       # run the test suite (also runs on `nix flake check`)
    #+END_SRC
    =nix develop= puts the same scripts on PATH as =trackify-dev-*=
 

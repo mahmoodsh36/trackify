@@ -5,13 +5,16 @@ import config
 
 class DbProvider:
     def __init__(self, user=config.CONFIG['database_user'], passwd=config.CONFIG['database_password'],
-                 database=config.CONFIG['database'], host=config.CONFIG['database_host']):
+                 database=config.CONFIG['database'], host=config.CONFIG['database_host'],
+                 port=config.CONFIG['database_port']):
         self.user = user
         self.passwd = passwd
         self.database = database
         self.host = host
+        self.port = port
         self.conn = mysql.connector.connect(
             host=host,
+            port=port,
             user=user,
             passwd=passwd,
             database=database,
@@ -28,6 +31,7 @@ class DbProvider:
         self.close()
         self.conn = mysql.connector.connect(
             host=self.host,
+            port=self.port,
             user=self.user,
             passwd=self.passwd,
             database=self.database,

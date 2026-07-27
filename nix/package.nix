@@ -12,13 +12,16 @@
 }:
 
 let
-  pythonEnv = python3.withPackages (ps: with ps; [
+  deps = ps: with ps; [
     flask
     requests
     redis
     gunicorn
     mysql-connector
-  ]);
+  ];
+
+  pythonEnv = python3.withPackages deps;
+  testEnv = python3.withPackages (ps: deps ps ++ [ ps.pytest ]);
 
   # an existing $PYTHONPATH stays in front so a caller can shadow config.py.
   mkRunner = name: command: writeShellScriptBin name ''
@@ -51,7 +54,7 @@ symlinkJoin {
     cp ${src}/trackify/db/schema.sql $out/share/trackify/schema.sql
   '';
 
-  passthru = { inherit pythonEnv src; };
+  passthru = { inherit pythonEnv testEnv src; };
 
   meta = {
     description = "track and visualize your spotify activity";
