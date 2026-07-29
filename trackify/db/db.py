@@ -210,7 +210,7 @@ class DbProvider:
         SELECT pa.* FROM pauses pa
         JOIN plays p ON p.id = pa.play_id
         WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR
-                                    (p.time_ended >= %s AND p.time_ended <= %s))
+                                  (p.time_ended >= %s AND p.time_ended <= %s))
         ORDER BY pa.time_added
         ''', (user_id, from_time, to_time, from_time, to_time))
 
@@ -219,7 +219,7 @@ class DbProvider:
         SELECT r.* FROM resumes r
         JOIN plays p ON p.id = r.play_id
         WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR
-                                    (p.time_ended >= %s AND p.time_ended <= %s))
+                                  (p.time_ended >= %s AND p.time_ended <= %s))
         ORDER BY r.time_added
         ''', (user_id, from_time, to_time, from_time, to_time))
 
@@ -246,7 +246,7 @@ class DbProvider:
         SELECT pa.* FROM pauses pa
         JOIN plays p ON p.id = pa.play_id
         WHERE p.track_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR
-                                     (p.time_ended >= %s AND p.time_ended <= %s))
+                                   (p.time_ended >= %s AND p.time_ended <= %s))
         ORDER BY pa.time_added
         ''', (track_id, from_time, to_time, from_time, to_time))
 
@@ -255,7 +255,7 @@ class DbProvider:
         SELECT r.* FROM resumes r
         JOIN plays p ON p.id = r.play_id
         WHERE p.track_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR
-                                     (p.time_ended >= %s AND p.time_ended <= %s))
+                                   (p.time_ended >= %s AND p.time_ended <= %s))
         ORDER BY r.time_added
         ''', (track_id, from_time, to_time, from_time, to_time))
 
