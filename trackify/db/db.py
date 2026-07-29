@@ -407,6 +407,14 @@ WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR (p.
         c.execute('SELECT * FROM user_settings WHERE user_id = %s', (user_id,))
         return c.fetchall()
 
+    def get_user_settings_for_users(self, user_ids):
+        if not user_ids:
+            return []
+        c = self.cursor()
+        placeholders = ', '.join(['%s'] * len(user_ids))
+        c.execute(f'SELECT * FROM user_settings WHERE user_id IN ({placeholders})', user_ids)
+        return c.fetchall()
+
     def get_settings(self):
         c = self.cursor()
         c.execute('SELECT * FROM settings')

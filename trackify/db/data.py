@@ -179,8 +179,6 @@ class DbDataProvider:
             else:
                 user = User(row['user_id'], row['user_username'], None, None,
                             row['user_time_added'], plays=[])
-                user.settings.append_all([setting for setting in
-                                          self.get_user_settings(user).values()])
                 users[user.id] = user
 
             if row['artist_id'] in artists:
@@ -219,6 +217,10 @@ class DbDataProvider:
             plays,
             self.db_provider.get_pauses_in_range(from_time, to_time),
             self.db_provider.get_resumes_in_range(from_time, to_time))
+
+        settings_by_user = self._get_settings_for_users(list(users.keys()))
+        for user_id, user in users.items():
+            user.settings.append_all(list(settings_by_user[user_id].values()))
 
         return users, artists, albums, tracks, plays
 
@@ -297,9 +299,7 @@ class DbDataProvider:
     def user_has_plays(self, user):
         return self.db_provider.user_has_plays(user.id)
 
-    def get_user_settings(self, user):
-        user_setting_rows = self.db_provider.get_user_settings(user.id)
-        setting_rows = self.db_provider.get_settings()
+    def _settings_from_rows(self, setting_rows, user_setting_rows):
         user_settings = {}
         for setting_row in setting_rows:
             user_setting_row = None
@@ -316,6 +316,20 @@ class DbDataProvider:
                               setting_row['value_type'])
             user_settings[setting_row['id']] = setting
         return user_settings
+
+    def get_user_settings(self, user):
+        user_setting_rows = self.db_provider.get_user_settings(user.id)
+        setting_rows = self.db_provider.get_settings()
+        return self._settings_from_rows(setting_rows, user_setting_rows)
+
+    def _get_settings_for_users(self, user_ids):
+        setting_rows = self.db_provider.get_settings()
+        user_setting_rows = self.db_provider.get_user_settings_for_users(user_ids)
+        rows_by_user = {}
+        for row in user_setting_rows:
+            rows_by_user.setdefault(row['user_id'], []).append(row)
+        return {user_id: self._settings_from_rows(setting_rows, rows_by_user.get(user_id, []))
+                for user_id in user_ids}
 
     def update_user_settings(self, user, settings):
         for setting_id in settings:
