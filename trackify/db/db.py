@@ -197,6 +197,14 @@ class DbProvider:
         c.execute('SELECT * FROM album_images')
         return c.fetchall()
 
+    def get_images_for_albums(self, album_ids):
+        if not album_ids:
+            return []
+        c = self.cursor()
+        placeholders = ', '.join(['%s'] * len(album_ids))
+        c.execute(f'SELECT * FROM album_images WHERE album_id IN ({placeholders})', album_ids)
+        return c.fetchall()
+
     def get_album_artists(self):
         c = self.cursor()
         c.execute('SELECT * FROM album_artists')
@@ -396,24 +404,17 @@ WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR (p.
         pa.id AS pause_id,
         pa.time_added AS pause_time_added,
         r.id AS resume_id,
-        r.time_added AS resume_time_added,
-        ali.id as album_image_id,
-        ali.width as album_image_width,
-        ali.height as album_image_height,
-        ali.url as album_image_url
+        r.time_added AS resume_time_added
         FROM plays p
         JOIN tracks t ON t.id = p.track_id
         JOIN track_artists ta ON t.id = ta.track_id
         JOIN artists a ON a.id = ta.artist_id
         JOIN albums al ON al.id = t.album_id
-        JOIN album_artists aa ON al.id = aa.album_id
-        JOIN album_images ali ON ali.album_id = al.id
         LEFT JOIN pauses pa ON pa.play_id = p.id
         LEFT JOIN resumes r ON r.play_id = p.id
         WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR
                                     (p.time_ended >= %s AND p.time_ended <= %s))
         ''', (user_id, from_time, to_time, from_time, to_time))
-        return
 
     def get_all_users_data(self, from_time, to_time):
         return self.execute_fetchall('''
@@ -434,19 +435,13 @@ WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR (p.
         pa.id AS pause_id,
         pa.time_added AS pause_time_added,
         r.id AS resume_id,
-        r.time_added AS resume_time_added,
-        ali.id as album_image_id,
-        ali.width as album_image_width,
-        ali.height as album_image_height,
-        ali.url as album_image_url
+        r.time_added AS resume_time_added
         FROM users u
         JOIN plays p ON p.user_id = u.id AND ((p.time_started >= %s AND p.time_started <= %s) OR (p.time_ended >= %s AND p.time_ended <= %s))
         JOIN tracks t ON t.id = p.track_id
         JOIN track_artists ta ON t.id = ta.track_id
         JOIN artists a ON a.id = ta.artist_id
         JOIN albums al ON al.id = t.album_id
-        JOIN album_artists aa ON al.id = aa.album_id
-        JOIN album_images ali ON ali.album_id = al.id
         LEFT JOIN pauses pa ON pa.play_id = p.id
         LEFT JOIN resumes r ON r.play_id = p.id
         ''', (from_time, to_time, from_time, to_time))

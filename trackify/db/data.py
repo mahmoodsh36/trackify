@@ -98,6 +98,15 @@ class DbDataProvider:
             users.append(user)
         return users
 
+    # fetched separately from the plays/tracks/artists/albums join: albums have
+    # multiple images each, so joining them onto the play rows multiplies every
+    # play by its album's image count instead of adding a handful of extra rows.
+    def _attach_album_images(self, albums):
+        image_rows = self.db_provider.get_images_for_albums(list(albums.keys()))
+        for row in image_rows:
+            image = Image(row['id'], row['url'], row['width'], row['height'])
+            albums[row['album_id']].add_image(image)
+
     def get_user_data(self, user, from_time=0, to_time=9999999999999):
         db_rows = self.db_provider.get_user_data(user.id, from_time, to_time)
 
@@ -105,9 +114,7 @@ class DbDataProvider:
         albums = {}
         artists = {}
         plays = {}
-        images = {}
 
-        seeks = {}
         pauses = {}
         resumes = {}
 
@@ -142,11 +149,6 @@ class DbDataProvider:
             else:
                 play = plays[row['play_id']]
 
-            #if not row['seek_id'] in seeks and row['seek_id']:
-            #    seek = Seek(row['seek_id'], play, row['seek_position'],
-            #                row['seek_time_added'])
-            #    play.seeks.append(seek)
-            #    seeks[seek.id] = seek
             if not row['pause_id'] in pauses and row['pause_id']:
                 pause = Pause(row['pause_id'], play, row['pause_time_added'])
                 play.pauses.append(pause)
@@ -156,11 +158,7 @@ class DbDataProvider:
                 play.resumes.append(resume)
                 resumes[resume.id] = resume
 
-            if row['album_image_id'] and not row['album_image_id'] in images:
-                image = Image(row['album_image_id'], row['album_image_url'],
-                              row['album_image_width'], row['album_image_height'])
-                images[row['album_image_id']] = image
-                albums[row['album_id']].add_image(image)
+        self._attach_album_images(albums)
 
         return artists, albums, tracks, plays
 
@@ -172,8 +170,6 @@ class DbDataProvider:
         artists = {}
         plays = {}
         users = {}
-        images = {}
-        seeks = {}
         pauses = {}
         resumes = {}
 
@@ -201,14 +197,6 @@ class DbDataProvider:
                 albums[album.id] = album
                 artist.albums.append(album)
 
-            if row['album_image_id'] in images:
-                image = images[row['album_image_id']]
-            else:
-                image = Image(row['album_image_id'], row['album_image_url'],
-                              row['album_image_width'], row['album_image_height'])
-                images[image.id] = image
-                album.images.append(image)
-
             if row['track_id'] in tracks:
                 track = tracks[row['track_id']]
             else:
@@ -226,11 +214,6 @@ class DbDataProvider:
             else:
                 play = plays[row['play_id']]
 
-            #if not row['seek_id'] in seeks and row['seek_id']:
-            #    seek = Seek(row['seek_id'], play, row['seek_position'],
-            #                row['seek_time_added'])
-            #    play.seeks.append(seek)
-            #    seeks[seek.id] = seek
             if not row['pause_id'] in pauses and row['pause_id']:
                 pause = Pause(row['pause_id'], play, row['pause_time_added'])
                 play.pauses.append(pause)
@@ -239,6 +222,8 @@ class DbDataProvider:
                 resume = Resume(row['resume_id'], play, row['resume_time_added'])
                 play.resumes.append(resume)
                 resumes[resume.id] = resume
+
+        self._attach_album_images(albums)
 
         return users, artists, albums, tracks, plays
 
