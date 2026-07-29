@@ -107,6 +107,18 @@ class DbDataProvider:
             image = Image(row['id'], row['url'], row['width'], row['height'])
             albums[row['album_id']].add_image(image)
 
+    # fetched separately from the plays join for the same reason as album images:
+    # a play can have several pauses and several resumes, so joining both onto the
+    # play row multiplies it by pauses * resumes instead of adding a few rows.
+    def _attach_pauses_and_resumes(self, plays, pause_rows, resume_rows):
+        for row in pause_rows:
+            play = plays[row['play_id']]
+            play.pauses.append(Pause(row['id'], play, row['time_added']))
+
+        for row in resume_rows:
+            play = plays[row['play_id']]
+            play.resumes.append(Resume(row['id'], play, row['time_added']))
+
     def get_user_data(self, user, from_time=0, to_time=9999999999999):
         db_rows = self.db_provider.get_user_data(user.id, from_time, to_time)
 
@@ -114,9 +126,6 @@ class DbDataProvider:
         albums = {}
         artists = {}
         plays = {}
-
-        pauses = {}
-        resumes = {}
 
         for row in db_rows:
             if row['artist_id'] in artists:
@@ -146,19 +155,12 @@ class DbDataProvider:
                             row['play_time_ended'], [], [], [],
                             user, track, None, None)
                 plays[play.id] = play
-            else:
-                play = plays[row['play_id']]
-
-            if not row['pause_id'] in pauses and row['pause_id']:
-                pause = Pause(row['pause_id'], play, row['pause_time_added'])
-                play.pauses.append(pause)
-                pauses[pause.id] = pause
-            if not row['resume_id'] in resumes and row['resume_id']:
-                resume = Resume(row['resume_id'], play, row['resume_time_added'])
-                play.resumes.append(resume)
-                resumes[resume.id] = resume
 
         self._attach_album_images(albums)
+        self._attach_pauses_and_resumes(
+            plays,
+            self.db_provider.get_pauses_for_user(user.id, from_time, to_time),
+            self.db_provider.get_resumes_for_user(user.id, from_time, to_time))
 
         return artists, albums, tracks, plays
 
@@ -170,8 +172,6 @@ class DbDataProvider:
         artists = {}
         plays = {}
         users = {}
-        pauses = {}
-        resumes = {}
 
         for row in db_rows:
             if row['user_id'] in users:
@@ -214,16 +214,11 @@ class DbDataProvider:
             else:
                 play = plays[row['play_id']]
 
-            if not row['pause_id'] in pauses and row['pause_id']:
-                pause = Pause(row['pause_id'], play, row['pause_time_added'])
-                play.pauses.append(pause)
-                pauses[pause.id] = pause
-            if not row['resume_id'] in resumes and row['resume_id']:
-                resume = Resume(row['resume_id'], play, row['resume_time_added'])
-                play.resumes.append(resume)
-                resumes[resume.id] = resume
-
         self._attach_album_images(albums)
+        self._attach_pauses_and_resumes(
+            plays,
+            self.db_provider.get_pauses_in_range(from_time, to_time),
+            self.db_provider.get_resumes_in_range(from_time, to_time))
 
         return users, artists, albums, tracks, plays
 
@@ -339,26 +334,17 @@ class DbDataProvider:
 
         # gotta use map for efficient access of a play using its id
         plays = {}
-        resumes = {}
-        pauses = {}
 
         for row in rows:
             if row['play_id'] not in plays:
                 play = Play(row['play_id'], row['play_time_started'], row['play_time_ended'], [], [], None,
                             user, None, None, None)
                 plays[play.id] = play
-            else:
-                play = plays[row['play_id']]
 
-            if not row['resume_id'] in resumes and row['resume_id']:
-                resume = Resume(row['resume_id'], play, row['resume_time_added'])
-                play.resumes.append(resume)
-                resumes[resume.id] = resume
-
-            if not row['pause_id'] in pauses and row['pause_id']:
-                pause = Pause(row['pause_id'], play, row['pause_time_added'])
-                play.pauses.append(pause)
-                pauses[pause.id] = pause
+        self._attach_pauses_and_resumes(
+            plays,
+            self.db_provider.get_pauses_for_track(track_id, from_time, to_time),
+            self.db_provider.get_resumes_for_track(track_id, from_time, to_time))
 
         return plays.values()
 
@@ -403,8 +389,6 @@ class DbDataProvider:
 
         artists = {}
         plays = {}
-        resumes = {}
-        pauses = {}
 
         for row in rows:
             if row['artist_id'] in artists:
@@ -419,18 +403,11 @@ class DbDataProvider:
                             None, None, None, None, None)
                 plays[play.id] = play
                 artist.plays.append(play)
-            else:
-                play = plays[row['play_id']]
 
-            if not row['resume_id'] in resumes and row['resume_id']:
-                resume = Resume(row['resume_id'], play, row['resume_time_added'])
-                play.resumes.append(resume)
-                resumes[resume.id] = resume
-
-            if not row['pause_id'] in pauses and row['pause_id']:
-                pause = Pause(row['pause_id'], play, row['pause_time_added'])
-                play.pauses.append(pause)
-                pauses[pause.id] = pause
+        self._attach_pauses_and_resumes(
+            plays,
+            self.db_provider.get_pauses_in_range(from_time, to_time),
+            self.db_provider.get_resumes_in_range(from_time, to_time))
 
         for artist in artists.values():
             for play in artist.plays:

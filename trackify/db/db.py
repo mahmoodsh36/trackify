@@ -205,6 +205,60 @@ class DbProvider:
         c.execute(f'SELECT * FROM album_images WHERE album_id IN ({placeholders})', album_ids)
         return c.fetchall()
 
+    def get_pauses_for_user(self, user_id, from_time, to_time):
+        return self.execute_fetchall('''
+        SELECT pa.* FROM pauses pa
+        JOIN plays p ON p.id = pa.play_id
+        WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR
+                                    (p.time_ended >= %s AND p.time_ended <= %s))
+        ORDER BY pa.time_added
+        ''', (user_id, from_time, to_time, from_time, to_time))
+
+    def get_resumes_for_user(self, user_id, from_time, to_time):
+        return self.execute_fetchall('''
+        SELECT r.* FROM resumes r
+        JOIN plays p ON p.id = r.play_id
+        WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR
+                                    (p.time_ended >= %s AND p.time_ended <= %s))
+        ORDER BY r.time_added
+        ''', (user_id, from_time, to_time, from_time, to_time))
+
+    def get_pauses_in_range(self, from_time, to_time):
+        return self.execute_fetchall('''
+        SELECT pa.* FROM pauses pa
+        JOIN plays p ON p.id = pa.play_id
+        WHERE (p.time_started >= %s AND p.time_started <= %s) OR
+              (p.time_ended >= %s AND p.time_ended <= %s)
+        ORDER BY pa.time_added
+        ''', (from_time, to_time, from_time, to_time))
+
+    def get_resumes_in_range(self, from_time, to_time):
+        return self.execute_fetchall('''
+        SELECT r.* FROM resumes r
+        JOIN plays p ON p.id = r.play_id
+        WHERE (p.time_started >= %s AND p.time_started <= %s) OR
+              (p.time_ended >= %s AND p.time_ended <= %s)
+        ORDER BY r.time_added
+        ''', (from_time, to_time, from_time, to_time))
+
+    def get_pauses_for_track(self, track_id, from_time, to_time):
+        return self.execute_fetchall('''
+        SELECT pa.* FROM pauses pa
+        JOIN plays p ON p.id = pa.play_id
+        WHERE p.track_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR
+                                     (p.time_ended >= %s AND p.time_ended <= %s))
+        ORDER BY pa.time_added
+        ''', (track_id, from_time, to_time, from_time, to_time))
+
+    def get_resumes_for_track(self, track_id, from_time, to_time):
+        return self.execute_fetchall('''
+        SELECT r.* FROM resumes r
+        JOIN plays p ON p.id = r.play_id
+        WHERE p.track_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR
+                                     (p.time_ended >= %s AND p.time_ended <= %s))
+        ORDER BY r.time_added
+        ''', (track_id, from_time, to_time, from_time, to_time))
+
     def get_album_artists(self):
         c = self.cursor()
         c.execute('SELECT * FROM album_artists')
@@ -400,18 +454,12 @@ WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR (p.
         t.id AS track_id,
         t.track_name AS track_name,
         al.id AS album_id,
-        al.album_name AS album_name,
-        pa.id AS pause_id,
-        pa.time_added AS pause_time_added,
-        r.id AS resume_id,
-        r.time_added AS resume_time_added
+        al.album_name AS album_name
         FROM plays p
         JOIN tracks t ON t.id = p.track_id
         JOIN track_artists ta ON t.id = ta.track_id
         JOIN artists a ON a.id = ta.artist_id
         JOIN albums al ON al.id = t.album_id
-        LEFT JOIN pauses pa ON pa.play_id = p.id
-        LEFT JOIN resumes r ON r.play_id = p.id
         WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR
                                     (p.time_ended >= %s AND p.time_ended <= %s))
         ''', (user_id, from_time, to_time, from_time, to_time))
@@ -431,33 +479,21 @@ WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR (p.
         t.id AS track_id,
         t.track_name AS track_name,
         al.id AS album_id,
-        al.album_name AS album_name,
-        pa.id AS pause_id,
-        pa.time_added AS pause_time_added,
-        r.id AS resume_id,
-        r.time_added AS resume_time_added
+        al.album_name AS album_name
         FROM users u
         JOIN plays p ON p.user_id = u.id AND ((p.time_started >= %s AND p.time_started <= %s) OR (p.time_ended >= %s AND p.time_ended <= %s))
         JOIN tracks t ON t.id = p.track_id
         JOIN track_artists ta ON t.id = ta.track_id
         JOIN artists a ON a.id = ta.artist_id
         JOIN albums al ON al.id = t.album_id
-        LEFT JOIN pauses pa ON pa.play_id = p.id
-        LEFT JOIN resumes r ON r.play_id = p.id
         ''', (from_time, to_time, from_time, to_time))
 
     def get_user_track_plays(self, user_id, track_id, from_time, to_time):
         return self.execute_fetchall('''
         SELECT p.id AS play_id,
         p.time_started AS play_time_started,
-        p.time_ended AS play_time_ended,
-        pa.id AS pause_id,
-        pa.time_added AS pause_time_added,
-        r.id AS resume_id,
-        r.time_added AS resume_time_added
+        p.time_ended AS play_time_ended
         FROM plays p
-        LEFT JOIN pauses pa ON pa.play_id = p.id
-        LEFT JOIN resumes r ON r.play_id = p.id
         WHERE ((p.time_started >= %s AND p.time_started <= %s) OR (p.time_ended >= %s AND p.time_ended <= %s)) AND p.track_id = %s
         ORDER BY p.time_started DESC
         ''', (from_time, to_time, from_time, to_time, track_id))
@@ -511,16 +547,10 @@ WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR (p.
         p.time_started as play_time_started,
         p.time_ended as play_time_ended,
         a.id as artist_id,
-        a.artist_name as artist_name,
-        pa.id as pause_id,
-        pa.time_added as pause_time_added,
-        r.id as resume_id,
-        r.time_added as resume_time_added
+        a.artist_name as artist_name
         from plays p
-        JOIN track_artists ta ON ta.track_id = p.track_id 
+        JOIN track_artists ta ON ta.track_id = p.track_id
         JOIN artists a ON a.id = ta.artist_id
-        LEFT JOIN pauses pa ON pa.play_id = p.id
-        LEFT JOIN resumes r ON r.play_id = p.id
         WHERE ((p.time_started >= %s AND p.time_started <= %s) OR (p.time_ended >= %s AND p.time_ended <= %s))
         ''', (from_time, to_time, from_time, to_time))
 
