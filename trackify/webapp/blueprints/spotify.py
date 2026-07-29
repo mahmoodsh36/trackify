@@ -68,16 +68,9 @@ def data():
     else:
         begin_time = current_time() - hrs_limit * 3600 * 1000
 
-    artists, albums, tracks, plays = g.db_data_provider.get_user_data(g.user, from_time=begin_time)
-
     if sort_by == 'time_listened':
-        for play in plays.values():
-            if hasattr(play.track, 'listened_ms'):
-                play.track.listened_ms += play.listened_ms(begin_time)
-            else:
-                play.track.listened_ms = play.listened_ms(begin_time)
-            if play.track.listened_ms > 0:
-                play.track.should_be_displayed = True
+        artists, albums, tracks = g.db_data_provider.get_user_listened_ms_by_track(
+            g.user, from_time=begin_time)
 
         for album in albums.values():
             for track in album.tracks:
@@ -98,6 +91,9 @@ def data():
                     if artist.listened_ms > 0:
                         artist.should_be_displayed = True
     elif sort_by == 'time_added':
+        artists, albums, tracks, plays = g.db_data_provider.get_user_data(
+            g.user, from_time=begin_time)
+
         for play in plays.values():
             if hasattr(play.track, 'time_added'):
                 if play.track.time_added > play.time_started:

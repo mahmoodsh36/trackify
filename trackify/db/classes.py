@@ -125,6 +125,45 @@ class SpotifyAccessToken:
         # expiry time is actually 3600 not 2500 but gotta be safe
         return self.time_added < current_time() - 2500 * 1000
 
+def play_listened_ms(time_started, time_ended, pause_times, resume_times,
+                     from_time=None, to_time=None):
+    if time_ended == -1:
+        return 0
+    if abs(len(pause_times) - len(resume_times)) > 1:
+        return 0
+    if from_time is None:
+        from_time = time_started
+    elif from_time > time_ended:
+        return 0
+    if to_time is None:
+        to_time = time_ended
+    elif to_time < time_started:
+        return 0
+    if from_time < time_started:
+        from_time = time_started
+    if to_time > time_ended:
+        to_time = time_ended
+    milliseconds = to_time - from_time
+    for i in range(len(resume_times)):
+        time_paused = pause_times[i]
+        time_resumed = resume_times[i]
+        if time_paused > to_time:
+            continue
+        if time_resumed < from_time:
+            continue
+        if time_paused < from_time:
+            time_paused = from_time
+        if time_resumed > to_time:
+            time_resumed = to_time
+        milliseconds -= time_resumed - time_paused
+    if len(pause_times) > len(resume_times):
+        time_paused = pause_times[-1]
+        if time_paused < to_time:
+            if time_paused < from_time:
+                time_paused = from_time
+            milliseconds -= to_time - time_paused
+    return milliseconds
+
 class Play:
     def __init__(self, play_id, time_started, time_ended, pauses, resumes, seeks, user,
                  track, device, volume_percent, context=None, is_playing=False,
@@ -157,44 +196,11 @@ class Play:
         return self.track.id == other_play.track.id
 
     def listened_ms(self, from_time=None, to_time=None):
-        if self.time_ended == -1:
-            return 0
-        if abs(len(self.pauses) - len(self.resumes)) > 1:
-            return 0
-        if from_time is None:
-            from_time = self.time_started
-        elif from_time > self.time_ended:
-            return 0
-        if to_time is None:
-            to_time = self.time_ended
-        elif to_time < self.time_started:
-            return 0
-        if from_time < self.time_started:
-            from_time = self.time_started
-        if to_time > self.time_ended:
-            to_time = self.time_ended
-        milliseconds = to_time - from_time
-        for i in range(len(self.resumes)):
-            pause = self.pauses[i]
-            resume = self.resumes[i]
-            time_paused = pause.time_added
-            time_resumed = resume.time_added
-            if time_paused > to_time:
-                continue
-            if time_resumed < from_time:
-                continue
-            if time_paused < from_time:
-                time_paused = from_time
-            if time_resumed > to_time:
-                time_resumed = to_time
-            milliseconds -= time_resumed - time_paused
-        if len(self.pauses) > len(self.resumes):
-            time_paused = self.pauses[-1].time_added
-            if time_paused < to_time:
-                if time_paused < from_time:
-                    time_paused = from_time
-                milliseconds -= to_time - time_paused
-        return milliseconds
+        return play_listened_ms(
+            self.time_started, self.time_ended,
+            [pause.time_added for pause in self.pauses],
+            [resume.time_added for resume in self.resumes],
+            from_time, to_time)
 
 class Pause:
     def __init__(self, pause_id, play, time_added):

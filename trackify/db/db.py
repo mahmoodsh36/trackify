@@ -438,17 +438,23 @@ WHERE p.user_id = %s AND ((p.time_started >= %s AND p.time_started <= %s) OR (p.
                    user_id = %s', (setting_id, user_id))
         return c.fetchone()
 
+    # plain (non-dict) cursor here on purpose: mysql-connector's dictionary=True
+    # cursor re-resolves column names on every row instead of once per query,
+    # which shows up in profiles as real time on large result sets.
     def execute_fetchall(self, sql, values=[]):
-        c = self.cursor()
+        c = self.conn.cursor()
         c.execute(sql, values)
-        #with open('query.txt', 'w+') as query_file:
-            #query_file.write(c._executed.decode('utf-8'))
-        return c.fetchall()
+        columns = [col[0] for col in c.description]
+        return [dict(zip(columns, row)) for row in c.fetchall()]
 
     def execute_fetchone(self, sql, values=[]):
-        c = self.cursor()
+        c = self.conn.cursor()
         c.execute(sql, values)
-        return c.fetchone()
+        row = c.fetchone()
+        if row is None:
+            return None
+        columns = [col[0] for col in c.description]
+        return dict(zip(columns, row))
 
     def get_user_data(self, user_id, from_time, to_time):
         return self.execute_fetchall('''

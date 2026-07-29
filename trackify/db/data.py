@@ -164,6 +164,67 @@ class DbDataProvider:
 
         return artists, albums, tracks, plays
 
+    # like get_user_data, but for callers that only need a per-track listened_ms
+    # total (e.g. the my-data page) rather than individual plays: skips building
+    # a Play/Pause/Resume object for every play, which is the expensive part for
+    # users with a large play history.
+    def get_user_listened_ms_by_track(self, user, from_time=0, to_time=9999999999999):
+        db_rows = self.db_provider.get_user_data(user.id, from_time, to_time)
+
+        tracks = {}
+        albums = {}
+        artists = {}
+        plays = {}
+
+        for row in db_rows:
+            if row['artist_id'] in artists:
+                artist = artists[row['artist_id']]
+            else:
+                artist = Artist(row['artist_id'], row['artist_name'], [])
+                artists[artist.id] = artist
+
+            if row['album_id'] in albums:
+                album = albums[row['album_id']]
+            else:
+                album = Album(row['album_id'], row['album_name'], [], [artist],
+                              [], None, None, None)
+                albums[album.id] = album
+                artist.albums.append(album)
+
+            if row['track_id'] in tracks:
+                track = tracks[row['track_id']]
+            else:
+                track = Track(row['track_id'], row['track_name'], album, [artist],
+                              None, None, None, None, None)
+                album.tracks.append(track)
+                tracks[track.id] = track
+
+            if row['play_id'] not in plays:
+                plays[row['play_id']] = (row['track_id'], row['play_time_started'],
+                                          row['play_time_ended'])
+
+        self._attach_album_images(albums)
+
+        pauses_by_play = {}
+        for row in self.db_provider.get_pauses_for_user(user.id, from_time, to_time):
+            pauses_by_play.setdefault(row['play_id'], []).append(row['time_added'])
+
+        resumes_by_play = {}
+        for row in self.db_provider.get_resumes_for_user(user.id, from_time, to_time):
+            resumes_by_play.setdefault(row['play_id'], []).append(row['time_added'])
+
+        for play_id, (track_id, time_started, time_ended) in plays.items():
+            ms = play_listened_ms(time_started, time_ended,
+                                   pauses_by_play.get(play_id, []),
+                                   resumes_by_play.get(play_id, []),
+                                   from_time)
+            track = tracks[track_id]
+            track.listened_ms = getattr(track, 'listened_ms', 0) + ms
+            if track.listened_ms > 0:
+                track.should_be_displayed = True
+
+        return artists, albums, tracks
+
     def get_all_users_data(self, from_time=0, to_time=9999999999999):
         db_rows = self.db_provider.get_all_users_data(from_time, to_time)
 
