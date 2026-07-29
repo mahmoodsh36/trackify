@@ -32,8 +32,6 @@ def create_app():
         if not 'cache_data_provider' in g:
             g.cache_data_provider = CacheDataProvider()
 
-        db_request = Request(request, None)
-
         user_id = session.get('user_id')
         if user_id is None:
             g.user = None
@@ -41,8 +39,10 @@ def create_app():
             # here g.user could be None if no user with that id was in database
             g.user = g.db_data_provider.get_user(user_id)
 
-        db_request.user = g.user
-        g.db_data_provider.add_request(db_request)
+        if not request.path.startswith('/auth/'):
+            db_request = Request(request, None)
+            db_request.user = g.user
+            g.db_data_provider.add_request(db_request)
 
         if not 'spotify_client' in g:
             g.spotify_client = SpotifyClient(config.CONFIG['client_id'], config.CONFIG['client_secret'],
