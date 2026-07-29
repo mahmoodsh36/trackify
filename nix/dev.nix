@@ -72,6 +72,11 @@ let
     '';
   };
 
+  bench = {
+    seedScript = ../scripts/bench/seed.sh;
+    benchmarkScript = ../scripts/bench/benchmark.py;
+  };
+
   apps = {
     web = "trackify-web";
     tracker = "trackify-tracker";
@@ -147,6 +152,31 @@ let
     '';
 
     mysql-shell = ''exec ${mysql} ${dbName} "$@"'';
+
+    # doubles rows in plays/requests until each reaches TRACKIFY_BENCH_TARGET, so there's
+    # enough data to benchmark against. only touches the local dev database. to get real
+    # data into it first, clone it manually (once) from a live instance, e.g.:
+    #   ssh <host> "sudo mariadb-dump --single-transaction --quick trackify" | trackify-dev-mysql-shell
+    bench-seed = ''
+      if ! ${cmd.mysqlReady} >/dev/null 2>&1; then
+        echo "mariadb is not running, start it with: trackify-dev-db"
+        exit 1
+      fi
+      export DB_NAME=${dbName}
+      export MYSQL="${mysql}"
+      exec ${bench.seedScript} "$@"
+    '';
+
+    # times the app's real user-facing query paths (history/my-data/top-users,
+    # see scripts/bench/benchmark.py) against the local dev database.
+    benchmark = ''
+      if ! ${cmd.mysqlReady} >/dev/null 2>&1; then
+        echo "mariadb is not running, start it with: trackify-dev-db"
+        exit 1
+      fi
+      export PYTHONPATH="${trackify.passthru.src}"
+      exec ${trackify.passthru.pythonEnv}/bin/python ${bench.benchmarkScript} "$@"
+    '';
 
     clean = ''
       rm -rf ${dataDir}
