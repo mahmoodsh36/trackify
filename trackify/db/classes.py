@@ -173,16 +173,6 @@ class Play:
         self.time_ended = time_ended
         self.user = user
         self.track = track
-
-class Play:
-    def __init__(self, play_id, time_started, time_ended, pauses, resumes, seeks, user,
-                 track, device, volume_percent, context=None, is_playing=False,
-                 progress_ms=-1):
-        self.id = play_id
-        self.time_started = time_started
-        self.time_ended = time_ended
-        self.user = user
-        self.track = track
         self.device = device
         self.context = context
         self.is_playing = is_playing
